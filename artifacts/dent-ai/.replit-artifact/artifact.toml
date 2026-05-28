@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Dr. DentAI"
+version = "1.0.0"
+id = "artifacts/dent-ai"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24927
+
+[services.development]
+run = "pnpm --filter @workspace/dent-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dent-ai", "run", "build" ]
+publicDir = "artifacts/dent-ai/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24927"
+BASE_PATH = "/"
