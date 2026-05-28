@@ -1,66 +1,94 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSendMessage } from "@workspace/api-client-react";
-import { ChatMessage, ChatMessageRole } from "@workspace/api-zod";
 import { ChatMessageBubble } from "@/components/ui/chat/message";
 import { TypingIndicator } from "@/components/ui/chat/typing";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, Smile, MessageSquare, AlertCircle } from "lucide-react";
+import { Send, AlertCircle, ArrowUp, Stethoscope } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { type Chat, type ChatMessage } from "@/hooks/use-chats";
 
-const INITIAL_MESSAGE: ChatMessage = {
+const INITIAL_ASSISTANT_MESSAGE: ChatMessage = {
   role: "assistant",
-  content: "Namaste! Main Dr. DentAI hoon 🦷 Aapka dental problem batao, main help karunga! Aap Hindi ya English mein baat kar sakte hain."
+  content:
+    "Namaste! Main Dr. DentAI hoon 🦷 Aapka dental problem batao, main help karunga! Aap Hindi ya English mein baat kar sakte hain.",
 };
 
 const SUGGESTIONS = [
   "Mere daant mein dard hai",
   "Mere gum se khoon aa raha hai",
   "Sensitivity problem hai",
-  "How to brush properly?"
+  "Wisdom tooth dard kar raha hai",
+  "Muh mein badboo aati hai",
+  "Cavity ka ilaj kya hai?",
 ];
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+interface ChatPageProps {
+  activeChatId: string | null;
+  activeChat: Chat | null;
+  onUpdateChat: (id: string, updates: Partial<Pick<Chat, "title" | "messages">>) => void;
+  onNewChat: () => void;
+  sidebarOpen: boolean;
+  onOpenSidebar: () => void;
+}
+
+export default function ChatPage({
+  activeChatId,
+  activeChat,
+  onUpdateChat,
+  onNewChat,
+}: ChatPageProps) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-
   const sendMessage = useSendMessage();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const messages: ChatMessage[] = activeChat?.messages ?? [];
+  const hasMessages = messages.length > 0;
 
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sendMessage.isPending]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim() || sendMessage.isPending) return;
+  const handleSubmit = (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || sendMessage.isPending || !activeChatId) return;
 
-    const userMessage: ChatMessage = { role: "user", content: input.trim() };
-    const newMessages = [...messages, userMessage];
-    
-    setMessages(newMessages);
-    setInput("");
+    const userMsg: ChatMessage = { role: "user", content };
+    const updatedMessages = [...messages, userMsg];
+
+    const isFirst = messages.length === 0;
+    const newTitle = isFirst
+      ? content.slice(0, 40) + (content.length > 40 ? "…" : "")
+      : activeChat?.title ?? "Naya sawaal";
+
+    onUpdateChat(activeChatId, {
+      messages: updatedMessages,
+      title: newTitle,
+    });
+
+    if (text === undefined) setInput("");
 
     sendMessage.mutate(
-      { data: { messages: newMessages } },
+      { data: { messages: updatedMessages } },
       {
         onSuccess: (response) => {
-          setMessages([...newMessages, { role: "assistant", content: response.message }]);
+          const assistantMsg: ChatMessage = {
+            role: "assistant",
+            content: response.message,
+          };
+          onUpdateChat(activeChatId, {
+            messages: [...updatedMessages, assistantMsg],
+          });
         },
         onError: () => {
           toast({
-            title: "Network Error",
-            description: "Could not connect to Dr. DentAI. Please try again.",
+            title: "Connection Error",
+            description: "Dr. DentAI se connect nahi ho pa raha. Please dobara try karein.",
             variant: "destructive",
           });
-          // Remove the user message if it failed, or we could leave it. For now, let's leave it so they can resend.
-        }
+        },
       }
     );
   };
@@ -72,94 +100,161 @@ export default function ChatPage() {
     }
   };
 
+  const handleSuggestion = (suggestion: string) => {
+    if (!activeChatId) {
+      onNewChat();
+      setTimeout(() => handleSubmit(suggestion), 50);
+    } else {
+      handleSubmit(suggestion);
+    }
+  };
+
+  // Input box shared between empty state and chat state
+  const InputBox = ({ centered = false }: { centered?: boolean }) => (
+    <div className={cn("w-full", centered ? "max-w-2xl mx-auto" : "max-w-3xl mx-auto")}>
+      <div className="relative flex items-end bg-card border border-input focus-within:ring-2 focus-within:ring-ring rounded-2xl shadow-md px-3 py-2 gap-2 transition-all">
+        <Textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Apni dental problem batayein..."
+          className="min-h-[48px] max-h-[160px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 px-2 py-2.5 text-base bg-transparent overflow-y-auto"
+          rows={1}
+        />
+        <button
+          type="button"
+          onClick={() => handleSubmit()}
+          disabled={!input.trim() || sendMessage.isPending || !activeChatId}
+          className={cn(
+            "shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all self-end mb-0.5",
+            input.trim() && activeChatId
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+          )}
+        >
+          <ArrowUp className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70 mt-2 text-center">
+        <AlertCircle className="w-3 h-3" />
+        Yeh AI advice hai — real dentist ki jagah nahi. Kripya daktar se paramarsh lein.
+      </p>
+    </div>
+  );
+
+  // No active chat selected — show a "select or start" state
+  if (!activeChatId) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+          <Stethoscope className="w-8 h-8 text-primary" />
+        </div>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+          Kya problem hai aaj? 🦷
+        </h1>
+        <p className="text-muted-foreground text-sm md:text-base mb-8 max-w-md">
+          Main Dr. DentAI hoon — aapka AI dental expert. Apni problem batao, main help karunga!
+        </p>
+        <button
+          onClick={onNewChat}
+          className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors shadow-md"
+        >
+          Naya sawaal puchho
+        </button>
+        <div className="mt-6 flex flex-wrap justify-center gap-2 max-w-lg">
+          {SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                onNewChat();
+                setTimeout(() => handleSubmit(s), 80);
+              }}
+              className="text-xs px-3 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50 transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Empty chat (just started) — ChatGPT-style centered input
+  if (!hasMessages) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+            <Stethoscope className="w-7 h-7 text-primary" />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 text-center">
+            Kya problem hai aaj? 🦷
+          </h1>
+          <p className="text-muted-foreground text-sm mb-8 text-center max-w-md">
+            Apni dental problem Hindi ya English mein batao — main samjhunga!
+          </p>
+
+          <InputBox centered />
+
+          <div className="mt-4 flex flex-wrap justify-center gap-2 max-w-xl">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                onClick={() => handleSubmit(s)}
+                className="text-xs px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50 transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Active chat with messages — standard chat layout
   return (
-    <div className="flex flex-col h-[100dvh] bg-background max-w-4xl mx-auto border-x border-border/40 shadow-sm relative">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="font-semibold text-foreground text-lg tracking-tight">Dr. DentAI</h1>
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              Online
-            </p>
-          </div>
+      <header className="hidden md:flex items-center gap-3 px-5 py-3.5 border-b border-border/40 bg-background/80 backdrop-blur-md">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Stethoscope className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <h2 className="font-semibold text-sm text-foreground leading-none">Dr. DentAI</h2>
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+            Online
+          </p>
         </div>
       </header>
 
-      {/* Chat Area */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-        <div className="flex flex-col space-y-6 max-w-3xl mx-auto w-full">
+      {/* Messages */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-5">
+          {/* Greeting from Dr. DentAI */}
+          <ChatMessageBubble
+            role={INITIAL_ASSISTANT_MESSAGE.role}
+            content={INITIAL_ASSISTANT_MESSAGE.content}
+          />
+
           {messages.map((msg, index) => (
             <ChatMessageBubble key={index} role={msg.role} content={msg.content} />
           ))}
 
           {sendMessage.isPending && (
-            <div className="flex w-full justify-start">
+            <div className="flex justify-start">
               <TypingIndicator />
             </div>
           )}
-          
           <div ref={messagesEndRef} />
         </div>
       </main>
 
-      {/* Input Area */}
-      <footer className="sticky bottom-0 z-10 bg-background border-t border-border/50 p-4 md:px-6 md:py-5">
-        <div className="max-w-3xl mx-auto w-full flex flex-col gap-3">
-          
-          {messages.length === 1 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {SUGGESTIONS.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  onClick={() => setInput(suggestion)}
-                  className="text-sm px-3 py-1.5 rounded-full bg-secondary/50 hover:bg-secondary text-secondary-foreground transition-colors border border-border/50 shadow-sm whitespace-nowrap"
-                  type="button"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <form 
-            onSubmit={handleSubmit}
-            className="relative flex items-end w-full gap-2 bg-card border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring rounded-2xl shadow-sm p-2 transition-all"
-          >
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Aapki dental problem batayein..."
-              className="min-h-[44px] max-h-[150px] w-full resize-none border-0 shadow-none focus-visible:ring-0 px-3 py-3 text-base bg-transparent overflow-y-auto"
-              rows={1}
-            />
-            <Button 
-              type="submit" 
-              size="icon" 
-              disabled={!input.trim() || sendMessage.isPending}
-              className={cn(
-                "h-10 w-10 shrink-0 rounded-full transition-all self-end mb-1 mr-1",
-                input.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground"
-              )}
-            >
-              <Send className="w-5 h-5 ml-0.5" />
-              <span className="sr-only">Send</span>
-            </Button>
-          </form>
-
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/80 mt-1">
-            <AlertCircle className="w-3.5 h-3.5" />
-            <p>Yeh AI advice hai — real dentist ki jagah nahi. Kripya daktar se paramarsh lein.</p>
-          </div>
-        </div>
+      {/* Input pinned at bottom */}
+      <footer className="border-t border-border/40 bg-background px-4 pt-3 pb-4 md:pb-5">
+        <InputBox />
       </footer>
     </div>
   );

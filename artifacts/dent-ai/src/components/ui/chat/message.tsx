@@ -1,5 +1,5 @@
 import React from "react";
-import { ChatMessageRole } from "@workspace/api-zod";
+type ChatMessageRole = "user" | "assistant";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { SimpleMarkdown } from "./markdown";

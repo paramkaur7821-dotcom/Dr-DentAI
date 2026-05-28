@@ -1,5 +1,5 @@
 import React from "react";
-import { ChatMessageRole } from "@workspace/api-zod";
+
 
 interface SimpleMarkdownProps {
   content: string;
