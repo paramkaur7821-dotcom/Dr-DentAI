@@ -17,11 +17,14 @@ import {
   X,
   Check,
   Menu,
+  BookOpen,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChats, type Chat } from "@/hooks/use-chats";
 import ChatPage from "@/pages/chat";
 import MedicinesPage from "@/pages/medicines";
+import LibraryPage from "@/pages/library";
 
 const queryClient = new QueryClient();
 
@@ -65,19 +68,16 @@ function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatItemProp
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
         setMenuOpen(false);
-      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
-  // Focus input when rename starts
   useEffect(() => {
     if (renaming) {
       setRenameVal(chat.title);
@@ -86,30 +86,22 @@ function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatItemProp
   }, [renaming, chat.title]);
 
   const commitRename = () => {
-    const trimmed = renameVal.trim();
-    if (trimmed && trimmed !== chat.title) onRename(trimmed);
+    const t = renameVal.trim();
+    if (t && t !== chat.title) onRename(t);
     setRenaming(false);
-  };
-
-  const handleMenuOption = (action: "rename" | "delete") => {
-    setMenuOpen(false);
-    if (action === "rename") setRenaming(true);
-    if (action === "delete") onDelete();
   };
 
   return (
     <div
       className={cn(
-        "group relative flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors cursor-pointer",
+        "group relative flex items-center gap-2 px-3 py-2 rounded-xl transition-colors cursor-pointer",
         isActive
           ? "bg-sidebar-accent text-sidebar-foreground"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
       )}
-      onClick={() => {
-        if (!renaming) onSelect();
-      }}
+      onClick={() => { if (!renaming) onSelect(); }}
     >
-      <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-50" />
+      <MessageSquare className="w-4 h-4 shrink-0 opacity-50" />
 
       {renaming ? (
         <form
@@ -122,60 +114,47 @@ function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatItemProp
             value={renameVal}
             onChange={(e) => setRenameVal(e.target.value)}
             onBlur={commitRename}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") { setRenaming(false); }
-            }}
-            className="flex-1 min-w-0 bg-transparent text-xs font-medium border-b border-sidebar-ring outline-none py-0.5 text-sidebar-foreground"
+            onKeyDown={(e) => { if (e.key === "Escape") setRenaming(false); }}
+            className="flex-1 min-w-0 bg-transparent text-sm border-b border-sidebar-ring outline-none py-0.5 text-sidebar-foreground"
           />
-          <button
-            type="submit"
-            className="shrink-0 p-0.5 rounded hover:text-primary transition-colors"
-            onMouseDown={(e) => e.preventDefault()}
-          >
+          <button type="submit" onMouseDown={(e) => e.preventDefault()} className="shrink-0 p-0.5 rounded hover:text-primary">
             <Check className="w-3 h-3" />
           </button>
-          <button
-            type="button"
-            onClick={() => setRenaming(false)}
-            className="shrink-0 p-0.5 rounded hover:text-destructive transition-colors"
-          >
+          <button type="button" onClick={() => setRenaming(false)} className="shrink-0 p-0.5 rounded hover:text-destructive">
             <X className="w-3 h-3" />
           </button>
         </form>
       ) : (
-        <span className="flex-1 truncate text-xs font-medium">{chat.title}</span>
+        <span className="flex-1 truncate text-sm">{chat.title}</span>
       )}
 
       {!renaming && (
         <div className="relative shrink-0" ref={menuRef}>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen((v) => !v);
-            }}
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
             className={cn(
-              "p-1 rounded-md transition-colors",
+              "p-1 rounded-lg transition-colors",
               menuOpen
-                ? "opacity-100 bg-sidebar-accent text-sidebar-foreground"
-                : "opacity-0 group-hover:opacity-100 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                ? "opacity-100 bg-sidebar-accent/80 text-sidebar-foreground"
+                : "opacity-0 group-hover:opacity-100 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             )}
           >
             <MoreHorizontal className="w-3.5 h-3.5" />
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 z-50 w-36 rounded-xl bg-popover border border-popover-border shadow-lg py-1 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="absolute right-0 top-full mt-1 z-50 w-40 rounded-xl bg-popover border border-popover-border shadow-xl py-1 animate-in fade-in slide-in-from-top-2 duration-150">
               <button
-                onClick={(e) => { e.stopPropagation(); handleMenuOption("rename"); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-popover-foreground hover:bg-accent/10 transition-colors"
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setRenaming(true); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-popover-foreground hover:bg-accent/10 transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                 Rename karein
               </button>
-              <div className="h-px bg-border/50 mx-2 my-1" />
+              <div className="h-px bg-border/50 mx-2 my-0.5" />
               <button
-                onClick={(e) => { e.stopPropagation(); handleMenuOption("delete"); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete karein
@@ -188,39 +167,50 @@ function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatItemProp
   );
 }
 
+type Page = "chat" | "medicines" | "library";
+
 // ── Main app layout ───────────────────────────────────────────────────────────
 function AppContent() {
   const [location, setLocation] = useLocation();
   const { chats, createChat, updateChat, deleteChat } = useChats();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
+  const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const activePage = location === "/medicines" ? "medicines" : "chat";
+  const activePage: Page =
+    location === "/medicines" ? "medicines" :
+    location === "/library" ? "library" : "chat";
+
   const activeChat = chats.find((c) => c.id === activeChatId) ?? null;
 
   const handleNewChat = useCallback(() => {
     const newChat = createChat();
     setActiveChatId(newChat.id);
     setLocation("/");
+    setSearchMode(false);
+    setSearchQuery("");
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, [createChat, setLocation]);
 
   const handleSelectChat = (chatId: string) => {
     setActiveChatId(chatId);
     setLocation("/");
+    setSearchMode(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
-  const handleDeleteChat = (chatId: string) => {
-    deleteChat(chatId);
-    if (activeChatId === chatId) setActiveChatId(null);
+  const handleNavigate = (page: Page) => {
+    setLocation(page === "chat" ? "/" : `/${page}`);
+    setSearchMode(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
-  const handleRenameChat = (chatId: string, newTitle: string) => {
-    updateChat(chatId, { title: newTitle });
+  const handleSearchToggle = () => {
+    setSearchMode((v) => !v);
+    setSearchQuery("");
+    if (!searchMode) setTimeout(() => searchInputRef.current?.focus(), 80);
   };
 
   const filteredChats = chats.filter((c) =>
@@ -244,127 +234,148 @@ function AppContent() {
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       <aside
         className={cn(
-          "fixed md:relative z-30 flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-[width] duration-300 ease-in-out overflow-hidden",
-          sidebarOpen ? "w-64" : "w-0"
+          "fixed md:relative z-30 flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-[width] duration-300 ease-in-out overflow-hidden shrink-0",
+          sidebarOpen ? "w-72" : "w-0"
         )}
       >
-        <div className="flex flex-col h-full w-64">
+        <div className="flex flex-col h-full w-72">
 
-          {/* Header: logo + collapse + new chat */}
-          <div className="flex items-center justify-between px-3 pt-3 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                <Stethoscope className="w-3.5 h-3.5 text-primary-foreground" />
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between px-4 pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm">
+                <Stethoscope className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-sidebar-foreground text-sm tracking-tight">
+              <span className="font-bold text-sidebar-foreground text-base tracking-tight">
                 Dr. DentAI
               </span>
             </div>
-            <div className="flex items-center gap-0.5">
-              <button
-                onClick={handleNewChat}
-                title="Naya sawaal"
-                className="p-1.5 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-              >
-                <SquarePen className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                title="Sidebar band karo"
-                className="p-1.5 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-              >
-                <PanelLeftClose className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              title="Band karo"
+              className="p-1.5 rounded-lg text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Search bar */}
-          <div className="px-3 mb-2">
-            <div
+          {/* ── Primary Nav Items (Gemini-style) ── */}
+          <nav className="px-3 space-y-0.5 mb-1">
+            {/* New Chat */}
+            <button
+              onClick={handleNewChat}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <SquarePen className="w-4 h-4 shrink-0" />
+                <span className="text-sm font-medium">Naya Chat</span>
+              </div>
+              <span className="text-[10px] text-sidebar-foreground/35 font-mono hidden md:block">Ctrl+N</span>
+            </button>
+
+            {/* Search Chats */}
+            <button
+              onClick={handleSearchToggle}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all",
-                searchFocused
-                  ? "bg-background border-ring shadow-sm"
-                  : "bg-sidebar-accent border-sidebar-border"
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium",
+                searchMode
+                  ? "bg-sidebar-accent text-sidebar-foreground"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               )}
             >
-              <Search className="w-3.5 h-3.5 text-sidebar-foreground/50 shrink-0" />
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Chats search karein..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                className="flex-1 min-w-0 bg-transparent text-xs text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => { setSearchQuery(""); searchRef.current?.focus(); }}
-                  className="shrink-0 text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </div>
+              <Search className="w-4 h-4 shrink-0" />
+              Chat Dhundho
+            </button>
 
-          {/* Chat list */}
-          <div className="flex-1 overflow-y-auto px-2 pb-2">
-            {groups.length === 0 && (
-              <div className="text-center py-8 px-4">
-                {searchQuery ? (
-                  <>
-                    <Search className="w-7 h-7 mx-auto mb-2 text-sidebar-foreground/20" />
-                    <p className="text-xs text-sidebar-foreground/40">
-                      "{searchQuery}" ke liye koi chat nahi mila
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <MessageSquare className="w-7 h-7 mx-auto mb-2 text-sidebar-foreground/20" />
-                    <p className="text-xs text-sidebar-foreground/40 leading-relaxed">
-                      Koi chat nahi hai abhi.<br />Naya sawaal puchho!
-                    </p>
-                  </>
-                )}
+            {/* Search input — expands below when active */}
+            {searchMode && (
+              <div className="px-1 pt-1 pb-0.5 animate-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-ring shadow-sm">
+                  <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Chat ka naam likho..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1 min-w-0 bg-transparent text-sm text-sidebar-foreground placeholder:text-muted-foreground/50 outline-none"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="shrink-0 text-muted-foreground hover:text-foreground">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
-            {groups.map((group) => (
-              <div key={group.label} className="mb-3">
-                <p className="text-[10px] uppercase tracking-wider font-semibold text-sidebar-foreground/35 px-2 mb-1">
-                  {group.label}
-                </p>
-                <div className="space-y-0.5">
-                  {group.chats.map((chat) => (
-                    <ChatItem
-                      key={chat.id}
-                      chat={chat}
-                      isActive={activeChatId === chat.id && activePage === "chat"}
-                      onSelect={() => handleSelectChat(chat.id)}
-                      onDelete={() => handleDeleteChat(chat.id)}
-                      onRename={(title) => handleRenameChat(chat.id, title)}
-                    />
-                  ))}
-                </div>
+            {/* Doctor's Library */}
+            <button
+              onClick={() => handleNavigate("library")}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium",
+                activePage === "library"
+                  ? "bg-sidebar-accent text-sidebar-foreground"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              )}
+            >
+              <BookOpen className="w-4 h-4 shrink-0" />
+              Doctor's Library
+            </button>
+          </nav>
+
+          {/* ── Divider ── */}
+          <div className="mx-4 border-t border-sidebar-border/60 my-1" />
+
+          {/* ── Recent Chats ── */}
+          <div className="flex-1 overflow-y-auto px-3 py-1">
+            {searchMode && searchQuery && filteredChats.length === 0 ? (
+              <div className="text-center py-8">
+                <Search className="w-7 h-7 mx-auto mb-2 text-sidebar-foreground/20" />
+                <p className="text-xs text-sidebar-foreground/40">"{searchQuery}" nahi mila</p>
               </div>
-            ))}
+            ) : groups.length === 0 ? (
+              <div className="text-center py-8 px-3">
+                <MessageSquare className="w-7 h-7 mx-auto mb-2 text-sidebar-foreground/20" />
+                <p className="text-xs text-sidebar-foreground/40 leading-relaxed">
+                  Koi chat nahi hai abhi.<br />Naya sawaal puchho!
+                </p>
+              </div>
+            ) : (
+              groups.map((group) => (
+                <div key={group.label} className="mb-4">
+                  <p className="text-[11px] uppercase tracking-wider font-semibold text-sidebar-foreground/35 px-3 mb-1.5">
+                    {group.label}
+                  </p>
+                  <div className="space-y-0.5">
+                    {group.chats.map((chat) => (
+                      <ChatItem
+                        key={chat.id}
+                        chat={chat}
+                        isActive={activeChatId === chat.id && activePage === "chat"}
+                        onSelect={() => handleSelectChat(chat.id)}
+                        onDelete={() => {
+                          deleteChat(chat.id);
+                          if (activeChatId === chat.id) setActiveChatId(null);
+                        }}
+                        onRename={(title) => updateChat(chat.id, { title })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
-          {/* Bottom: Medicines link */}
-          <div className="p-2 border-t border-sidebar-border">
+          {/* ── Bottom nav ── */}
+          <div className="px-3 pb-3 pt-1 border-t border-sidebar-border space-y-0.5">
             <button
-              onClick={() => {
-                setLocation("/medicines");
-                if (window.innerWidth < 768) setSidebarOpen(false);
-              }}
+              onClick={() => handleNavigate("medicines")}
               className={cn(
-                "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium",
                 activePage === "medicines"
                   ? "bg-sidebar-accent text-sidebar-foreground"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               )}
             >
               <Pill className="w-4 h-4 shrink-0" />
@@ -377,7 +388,7 @@ function AppContent() {
       {/* ── Main content ─────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
 
-        {/* Topbar for mobile */}
+        {/* Mobile topbar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 md:hidden shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -385,20 +396,18 @@ function AppContent() {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <span className="font-semibold text-foreground text-sm">
-            {activePage === "medicines" ? "Dental Medicines" : "Dr. DentAI"}
+          <span className="font-semibold text-foreground text-sm flex-1">
+            {activePage === "medicines" ? "Dental Medicines" :
+             activePage === "library" ? "Doctor's Library" : "Dr. DentAI"}
           </span>
           {activePage === "chat" && (
-            <button
-              onClick={handleNewChat}
-              className="ml-auto p-1.5 rounded-lg text-foreground/60 hover:text-foreground hover:bg-muted transition-colors"
-            >
+            <button onClick={handleNewChat} className="p-1.5 rounded-lg text-foreground/60 hover:text-foreground hover:bg-muted transition-colors">
               <SquarePen className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Desktop: floating open-sidebar button when collapsed */}
+        {/* Desktop: floating buttons when sidebar is collapsed */}
         {!sidebarOpen && (
           <div className="hidden md:flex absolute top-3 left-3 z-10 items-center gap-1">
             <button
@@ -410,7 +419,7 @@ function AppContent() {
             </button>
             <button
               onClick={handleNewChat}
-              title="Naya sawaal"
+              title="Naya chat"
               className="p-2 rounded-lg text-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
             >
               <SquarePen className="w-4 h-4" />
@@ -420,6 +429,8 @@ function AppContent() {
 
         {activePage === "medicines" ? (
           <MedicinesPage />
+        ) : activePage === "library" ? (
+          <LibraryPage />
         ) : (
           <ChatPage
             key={activeChatId ?? "new"}
