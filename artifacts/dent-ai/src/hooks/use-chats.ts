@@ -21,7 +21,11 @@ function generateId() {
 function loadChats(): Chat[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const chats: Chat[] = JSON.parse(stored);
+    return chats.map((c) =>
+      c.title === "Naya sawaal" ? { ...c, title: "New chat" } : c
+    );
   } catch {
     return [];
   }
@@ -40,7 +44,7 @@ export function useChats() {
   const createChat = (): Chat => {
     const newChat: Chat = {
       id: generateId(),
-      title: "Naya sawaal",
+      title: "New chat",
       messages: [],
       createdAt: Date.now(),
     };
