@@ -243,9 +243,11 @@ function AppContent() {
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-4 pt-4 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm">
-                <Stethoscope className="w-4 h-4 text-primary-foreground" />
-              </div>
+              <img
+                src="/dent-ai-logo.png"
+                alt="Dr. DentAI"
+                className="w-8 h-8 rounded-xl object-cover shrink-0 shadow-sm"
+              />
               <span className="font-bold text-sidebar-foreground text-base tracking-tight">
                 Dr. DentAI
               </span>

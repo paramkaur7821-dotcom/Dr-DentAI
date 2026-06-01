@@ -3,7 +3,7 @@ type ChatMessageRole = "user" | "assistant";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { SimpleMarkdown } from "./markdown";
-import { User, Stethoscope } from "lucide-react";
+import { User } from "lucide-react";
 
 interface ChatMessageProps {
   role: ChatMessageRole;
@@ -21,11 +21,11 @@ export function ChatMessageBubble({ role, content }: ChatMessageProps) {
       )}
     >
       {!isUser && (
-        <Avatar className="w-8 h-8 md:w-10 md:h-10 border-2 border-background shadow-sm shrink-0">
-          <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground">
-            <Stethoscope className="w-5 h-5" />
-          </div>
-        </Avatar>
+        <img
+          src="/dent-ai-logo.png"
+          alt="Dr. DentAI"
+          className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-background shadow-sm shrink-0"
+        />
       )}
 
       <div

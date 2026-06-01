@@ -3,7 +3,7 @@ import { useSendMessage } from "@workspace/api-client-react";
 import { ChatMessageBubble } from "@/components/ui/chat/message";
 import { TypingIndicator } from "@/components/ui/chat/typing";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, AlertCircle, ArrowUp, Stethoscope } from "lucide-react";
+import { Send, AlertCircle, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { type Chat, type ChatMessage } from "@/hooks/use-chats";
@@ -147,9 +147,7 @@ export default function ChatPage({
   if (!activeChatId) {
     return (
       <div className="flex flex-col h-full items-center justify-center px-4 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-          <Stethoscope className="w-8 h-8 text-primary" />
-        </div>
+        <img src="/dent-ai-logo.png" alt="Dr. DentAI" className="w-20 h-20 rounded-2xl object-cover mb-5 shadow-lg" />
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
           Kya problem hai aaj? 🦷
         </h1>
@@ -185,9 +183,7 @@ export default function ChatPage({
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-            <Stethoscope className="w-7 h-7 text-primary" />
-          </div>
+          <img src="/dent-ai-logo.png" alt="Dr. DentAI" className="w-16 h-16 rounded-2xl object-cover mb-5 shadow-lg" />
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 text-center">
             Kya problem hai aaj? 🦷
           </h1>
@@ -218,9 +214,7 @@ export default function ChatPage({
     <div className="flex flex-col h-full">
       {/* Header */}
       <header className="hidden md:flex items-center gap-3 px-5 py-3.5 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Stethoscope className="w-4 h-4 text-primary" />
-        </div>
+        <img src="/dent-ai-logo.png" alt="Dr. DentAI" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
         <div>
           <h2 className="font-semibold text-sm text-foreground leading-none">Dr. DentAI</h2>
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
