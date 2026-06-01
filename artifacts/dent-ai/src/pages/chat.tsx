@@ -11,16 +11,16 @@ import { type Chat, type ChatMessage } from "@/hooks/use-chats";
 const INITIAL_ASSISTANT_MESSAGE: ChatMessage = {
   role: "assistant",
   content:
-    "Namaste! Main Dr. DentAI hoon 🦷 Aapka dental problem batao, main help karunga! Aap Hindi ya English mein baat kar sakte hain.",
+    "Hello! I'm Dr. DentAI 🦷 Tell me your dental problem and I'll help you! You can speak in Hindi or English.",
 };
 
 const SUGGESTIONS = [
-  "Mere daant mein dard hai",
-  "Mere gum se khoon aa raha hai",
-  "Sensitivity problem hai",
-  "Wisdom tooth dard kar raha hai",
-  "Muh mein badboo aati hai",
-  "Cavity ka ilaj kya hai?",
+  "I have a toothache",
+  "My gums are bleeding",
+  "I have tooth sensitivity",
+  "Wisdom tooth pain",
+  "Bad breath problem",
+  "How to treat a cavity?",
 ];
 
 interface ChatPageProps {
@@ -61,7 +61,7 @@ export default function ChatPage({
     const isFirst = messages.length === 0;
     const newTitle = isFirst
       ? content.slice(0, 40) + (content.length > 40 ? "…" : "")
-      : activeChat?.title ?? "Naya sawaal";
+      : activeChat?.title ?? "New question";
 
     onUpdateChat(activeChatId, {
       messages: updatedMessages,
@@ -85,7 +85,7 @@ export default function ChatPage({
         onError: () => {
           toast({
             title: "Connection Error",
-            description: "Dr. DentAI se connect nahi ho pa raha. Please dobara try karein.",
+            description: "Unable to connect to Dr. DentAI. Please try again.",
             variant: "destructive",
           });
         },
@@ -118,7 +118,7 @@ export default function ChatPage({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Apni dental problem batayein..."
+          placeholder="Describe your dental problem..."
           className="min-h-[48px] max-h-[160px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 px-2 py-2.5 text-base bg-transparent overflow-y-auto"
           rows={1}
         />
@@ -138,7 +138,7 @@ export default function ChatPage({
       </div>
       <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70 mt-2 text-center">
         <AlertCircle className="w-3 h-3" />
-        Yeh AI advice hai — real dentist ki jagah nahi. Kripya daktar se paramarsh lein.
+        This is AI advice — not a substitute for a real dentist. Please consult a doctor.
       </p>
     </div>
   );
@@ -149,16 +149,16 @@ export default function ChatPage({
       <div className="flex flex-col h-full items-center justify-center px-4 text-center">
         <img src="/dent-ai-logo.png" alt="Dr. DentAI" className="w-20 h-20 rounded-2xl object-cover mb-5 shadow-lg" />
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-          Kya problem hai aaj? 🦷
+          What's your dental concern? 🦷
         </h1>
         <p className="text-muted-foreground text-sm md:text-base mb-8 max-w-md">
-          Main Dr. DentAI hoon — aapka AI dental expert. Apni problem batao, main help karunga!
+          I'm Dr. DentAI — your AI dental expert. Describe your problem and I'll help!
         </p>
         <button
           onClick={onNewChat}
           className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors shadow-md"
         >
-          Naya sawaal puchho
+          Start New Chat
         </button>
         <div className="mt-6 flex flex-wrap justify-center gap-2 max-w-lg">
           {SUGGESTIONS.map((s) => (
@@ -185,10 +185,10 @@ export default function ChatPage({
         <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
           <img src="/dent-ai-logo.png" alt="Dr. DentAI" className="w-16 h-16 rounded-2xl object-cover mb-5 shadow-lg" />
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 text-center">
-            Kya problem hai aaj? 🦷
+            What's your dental concern? 🦷
           </h1>
           <p className="text-muted-foreground text-sm mb-8 text-center max-w-md">
-            Apni dental problem Hindi ya English mein batao — main samjhunga!
+            Describe your dental problem — I understand Hindi &amp; English!
           </p>
 
           <InputBox centered />

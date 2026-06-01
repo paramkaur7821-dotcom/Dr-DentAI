@@ -35,10 +35,10 @@ function groupChatsByDate(chats: Chat[]) {
   const weekAgo = new Date(today.getTime() - 7 * 86400000);
 
   const groups: { label: string; chats: Chat[] }[] = [
-    { label: "Aaj", chats: [] },
-    { label: "Kal", chats: [] },
-    { label: "Pichle 7 din", chats: [] },
-    { label: "Purana", chats: [] },
+    { label: "Today", chats: [] },
+    { label: "Yesterday", chats: [] },
+    { label: "Last 7 days", chats: [] },
+    { label: "Older", chats: [] },
   ];
 
   for (const chat of chats) {
@@ -149,7 +149,7 @@ function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatItemProp
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-popover-foreground hover:bg-accent/10 transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                Rename karein
+                Rename
               </button>
               <div className="h-px bg-border/50 mx-2 my-0.5" />
               <button
@@ -157,7 +157,7 @@ function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatItemProp
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Delete karein
+                Delete
               </button>
             </div>
           )}
@@ -254,7 +254,7 @@ function AppContent() {
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              title="Band karo"
+              title="Close sidebar"
               className="p-1.5 rounded-lg text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
             >
               <PanelLeftClose className="w-4 h-4" />
@@ -270,7 +270,7 @@ function AppContent() {
             >
               <div className="flex items-center gap-3">
                 <SquarePen className="w-4 h-4 shrink-0" />
-                <span className="text-sm font-medium">Naya Chat</span>
+                <span className="text-sm font-medium">New Chat</span>
               </div>
               <span className="text-[10px] text-sidebar-foreground/35 font-mono hidden md:block">Ctrl+N</span>
             </button>
@@ -286,7 +286,7 @@ function AppContent() {
               )}
             >
               <Search className="w-4 h-4 shrink-0" />
-              Chat Dhundho
+              Search Chats
             </button>
 
             {/* Search input — expands below when active */}
@@ -297,7 +297,7 @@ function AppContent() {
                   <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Chat ka naam likho..."
+                    placeholder="Search chats..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-1 min-w-0 bg-transparent text-sm text-sidebar-foreground placeholder:text-muted-foreground/50 outline-none"
@@ -334,13 +334,13 @@ function AppContent() {
             {searchMode && searchQuery && filteredChats.length === 0 ? (
               <div className="text-center py-8">
                 <Search className="w-7 h-7 mx-auto mb-2 text-sidebar-foreground/20" />
-                <p className="text-xs text-sidebar-foreground/40">"{searchQuery}" nahi mila</p>
+                <p className="text-xs text-sidebar-foreground/40">No results for "{searchQuery}"</p>
               </div>
             ) : groups.length === 0 ? (
               <div className="text-center py-8 px-3">
                 <MessageSquare className="w-7 h-7 mx-auto mb-2 text-sidebar-foreground/20" />
                 <p className="text-xs text-sidebar-foreground/40 leading-relaxed">
-                  Koi chat nahi hai abhi.<br />Naya sawaal puchho!
+                  No chats yet.<br />Start a new conversation!
                 </p>
               </div>
             ) : (
@@ -414,14 +414,14 @@ function AppContent() {
           <div className="hidden md:flex absolute top-3 left-3 z-10 items-center gap-1">
             <button
               onClick={() => setSidebarOpen(true)}
-              title="Sidebar kholo"
+              title="Open sidebar"
               className="p-2 rounded-lg text-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
             >
               <PanelLeftOpen className="w-4 h-4" />
             </button>
             <button
               onClick={handleNewChat}
-              title="Naya chat"
+              title="New chat"
               className="p-2 rounded-lg text-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
             >
               <SquarePen className="w-4 h-4" />
