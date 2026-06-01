@@ -3,7 +3,7 @@ import { useSendMessage } from "@workspace/api-client-react";
 import { ChatMessageBubble } from "@/components/ui/chat/message";
 import { TypingIndicator } from "@/components/ui/chat/typing";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, AlertCircle, ArrowUp } from "lucide-react";
+import { AlertCircle, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { type Chat, type ChatMessage } from "@/hooks/use-chats";
@@ -100,50 +100,7 @@ export default function ChatPage({
     }
   };
 
-  const handleSuggestion = (suggestion: string) => {
-    if (!activeChatId) {
-      onNewChat();
-      setTimeout(() => handleSubmit(suggestion), 50);
-    } else {
-      handleSubmit(suggestion);
-    }
-  };
-
-  // Input box shared between empty state and chat state
-  const InputBox = ({ centered = false }: { centered?: boolean }) => (
-    <div className={cn("w-full", centered ? "max-w-2xl mx-auto" : "max-w-3xl mx-auto")}>
-      <div className="relative flex items-end bg-card border border-input focus-within:ring-2 focus-within:ring-ring rounded-2xl shadow-md px-3 py-2 gap-2 transition-all">
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Describe your dental problem..."
-          className="min-h-[48px] max-h-[160px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 px-2 py-2.5 text-base bg-transparent overflow-y-auto"
-          rows={1}
-        />
-        <button
-          type="button"
-          onClick={() => handleSubmit()}
-          disabled={!input.trim() || sendMessage.isPending || !activeChatId}
-          className={cn(
-            "shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all self-end mb-0.5",
-            input.trim() && activeChatId
-              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-              : "bg-muted text-muted-foreground cursor-not-allowed"
-          )}
-        >
-          <ArrowUp className="w-4 h-4" />
-        </button>
-      </div>
-      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70 mt-2 text-center">
-        <AlertCircle className="w-3 h-3" />
-        This is AI advice — not a substitute for a real dentist. Please consult a doctor.
-      </p>
-    </div>
-  );
-
-  // No active chat selected — show a "select or start" state
+  // No active chat selected
   if (!activeChatId) {
     return (
       <div className="flex flex-col h-full items-center justify-center px-4 text-center">
@@ -178,7 +135,7 @@ export default function ChatPage({
     );
   }
 
-  // Empty chat (just started) — ChatGPT-style centered input
+  // Empty chat (just started) — centered input
   if (!hasMessages) {
     return (
       <div className="flex flex-col h-full">
@@ -191,7 +148,36 @@ export default function ChatPage({
             Describe your dental problem — I understand Hindi &amp; English!
           </p>
 
-          <InputBox centered />
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="relative flex items-end bg-card border border-input focus-within:ring-2 focus-within:ring-ring rounded-2xl shadow-md px-3 py-2 gap-2 transition-all">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe your dental problem..."
+                className="min-h-[48px] max-h-[160px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 px-2 py-2.5 text-base bg-transparent overflow-y-auto"
+                rows={1}
+              />
+              <button
+                type="button"
+                onClick={() => handleSubmit()}
+                disabled={!input.trim() || sendMessage.isPending}
+                className={cn(
+                  "shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all self-end mb-0.5",
+                  input.trim()
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                )}
+              >
+                <ArrowUp className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70 mt-2 text-center">
+              <AlertCircle className="w-3 h-3" />
+              This is AI advice — not a substitute for a real dentist. Please consult a doctor.
+            </p>
+          </div>
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 max-w-xl">
             {SUGGESTIONS.map((s) => (
@@ -209,10 +195,9 @@ export default function ChatPage({
     );
   }
 
-  // Active chat with messages — standard chat layout
+  // Active chat with messages
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <header className="hidden md:flex items-center gap-3 px-5 py-3.5 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <img src="/dent-ai-logo.png" alt="Dr. DentAI" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
         <div>
@@ -224,19 +209,15 @@ export default function ChatPage({
         </div>
       </header>
 
-      {/* Messages */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-5">
-          {/* Greeting from Dr. DentAI */}
           <ChatMessageBubble
             role={INITIAL_ASSISTANT_MESSAGE.role}
             content={INITIAL_ASSISTANT_MESSAGE.content}
           />
-
           {messages.map((msg, index) => (
             <ChatMessageBubble key={index} role={msg.role} content={msg.content} />
           ))}
-
           {sendMessage.isPending && (
             <div className="flex justify-start">
               <TypingIndicator />
@@ -246,9 +227,37 @@ export default function ChatPage({
         </div>
       </main>
 
-      {/* Input pinned at bottom */}
       <footer className="border-t border-border/40 bg-background px-4 pt-3 pb-4 md:pb-5">
-        <InputBox />
+        <div className="w-full max-w-3xl mx-auto">
+          <div className="relative flex items-end bg-card border border-input focus-within:ring-2 focus-within:ring-ring rounded-2xl shadow-md px-3 py-2 gap-2 transition-all">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe your dental problem..."
+              className="min-h-[48px] max-h-[160px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 px-2 py-2.5 text-base bg-transparent overflow-y-auto"
+              rows={1}
+            />
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={!input.trim() || sendMessage.isPending || !activeChatId}
+              className={cn(
+                "shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all self-end mb-0.5",
+                input.trim() && activeChatId
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
+              )}
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70 mt-2 text-center">
+            <AlertCircle className="w-3 h-3" />
+            This is AI advice — not a substitute for a real dentist. Please consult a doctor.
+          </p>
+        </div>
       </footer>
     </div>
   );
