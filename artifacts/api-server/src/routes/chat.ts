@@ -83,6 +83,7 @@ router.post("/chat", async (req, res) => {
 
     if (image) {
       // Vision mode — use vision-capable model, attach image to last user message
+      // Strip images from history — only the current message carries the image
       const textMessages = messages.slice(0, -1).map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,

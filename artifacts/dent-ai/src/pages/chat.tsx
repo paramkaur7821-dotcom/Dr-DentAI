@@ -94,8 +94,10 @@ export default function ChatPage({
     if (text === undefined) setInput("");
     setPendingImage(null);
 
+    // Strip image data from history before sending — only top-level image field carries the current photo
+    const messagesForApi = updatedMessages.map(({ image: _img, ...rest }) => rest);
     sendMessage.mutate(
-      { data: { messages: updatedMessages, ...(imageToSend ? { image: imageToSend } : {}) } },
+      { data: { messages: messagesForApi, ...(imageToSend ? { image: imageToSend } : {}) } },
       {
         onSuccess: (response) => {
           const assistantMsg: ChatMessage = { role: "assistant", content: response.message };
