@@ -78,6 +78,10 @@ router.post("/chat", async (req, res) => {
 
   const { messages, image } = parsed.data;
 
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const systemPromptWithDate = `Today's date: ${dateStr}\n\n${SYSTEM_PROMPT}`;
+
   try {
     let groqMessages: Groq.Chat.ChatCompletionMessageParam[];
 
@@ -105,7 +109,7 @@ router.post("/chat", async (req, res) => {
       };
 
       groqMessages = [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPromptWithDate },
         ...textMessages,
         visionMessage,
       ];
@@ -122,7 +126,7 @@ router.post("/chat", async (req, res) => {
     } else {
       // Text-only mode
       groqMessages = [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPromptWithDate },
         ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       ];
 
