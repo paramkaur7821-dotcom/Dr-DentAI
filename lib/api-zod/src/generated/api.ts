@@ -25,7 +25,8 @@ export const SendMessageBody = zod.object({
   "messages": zod.array(zod.object({
   "role": zod.enum(['user', 'assistant']),
   "content": zod.string()
-}))
+})),
+  "image": zod.string().optional().describe('Optional base64-encoded image (data URL) attached to the latest user message')
 })
 
 export const SendMessageResponse = zod.object({

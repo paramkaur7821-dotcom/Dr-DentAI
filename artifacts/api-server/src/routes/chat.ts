@@ -17,10 +17,10 @@ const SYSTEM_PROMPT = `You are Dr. DentAI — a friendly, expert AI dentist with
 
 ---
 
-## WHEN A USER DESCRIBES A SYMPTOM, ALWAYS RESPOND IN THIS FORMAT:
+## WHEN A USER DESCRIBES A SYMPTOM OR SHARES AN IMAGE, ALWAYS RESPOND IN THIS FORMAT:
 
 🔍 **Symptoms Samjha:**
-(Briefly repeat what the patient said, show empathy)
+(Briefly repeat what the patient said or described in the image, show empathy)
 
 🦷 **Possible Problem:**
 (What it could be — Cavity / Gum Disease / Sensitivity / Infection / Abscess / Cracked Tooth etc.)
@@ -52,6 +52,7 @@ const SYSTEM_PROMPT = `You are Dr. DentAI — a friendly, expert AI dentist with
 4. If user mentions severe swelling, difficulty breathing, or high fever — say "EMERGENCY: Abhi hospital jao"
 5. Always end serious cases with: "Yeh AI advice hai — real dentist ki jagah nahi"
 6. If user asks non-dental questions, politely redirect: "Main sirf dental problems mein help kar sakta hoon 😊"
+7. When analyzing an image, describe what you visually observe before giving advice
 
 ---
 
@@ -75,21 +76,65 @@ router.post("/chat", async (req, res) => {
     return;
   }
 
-  const { messages } = parsed.data;
+  const { messages, image } = parsed.data;
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
+    let groqMessages: Groq.Chat.ChatCompletionMessageParam[];
+
+    if (image) {
+      // Vision mode — use vision-capable model, attach image to last user message
+      const textMessages = messages.slice(0, -1).map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+
+      const lastMessage = messages[messages.length - 1];
+      const visionMessage: Groq.Chat.ChatCompletionMessageParam = {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: image },
+          },
+          {
+            type: "text",
+            text: lastMessage?.content || "Please analyze this dental image and tell me what you see.",
+          },
+        ],
+      };
+
+      groqMessages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...textMessages,
+        visionMessage,
+      ];
+
+      const completion = await groq.chat.completions.create({
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        messages: groqMessages,
+        max_tokens: 1024,
+        temperature: 0.7,
+      });
+
+      const reply = completion.choices[0]?.message?.content ?? "Sorry, image analyze nahi ho saka. Please dobara try karein.";
+      res.json({ message: reply });
+    } else {
+      // Text-only mode
+      groqMessages = [
         { role: "system", content: SYSTEM_PROMPT },
         ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
-      ],
-      max_tokens: 1024,
-      temperature: 0.7,
-    });
+      ];
 
-    const reply = completion.choices[0]?.message?.content ?? "Sorry, kuch problem ho gayi. Please dobara try karein.";
-    res.json({ message: reply });
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: groqMessages,
+        max_tokens: 1024,
+        temperature: 0.7,
+      });
+
+      const reply = completion.choices[0]?.message?.content ?? "Sorry, kuch problem ho gayi. Please dobara try karein.";
+      res.json({ message: reply });
+    }
   } catch (err) {
     req.log.error({ err }, "Groq API error");
     res.status(500).json({ error: "AI service unavailable. Please try again." });

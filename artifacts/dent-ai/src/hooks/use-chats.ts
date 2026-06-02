@@ -5,6 +5,7 @@ const STORAGE_KEY = "dent-ai-chats";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  image?: string;
 }
 
 export interface Chat {

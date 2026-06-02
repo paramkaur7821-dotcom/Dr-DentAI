@@ -80,6 +80,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChatMessage"
+        image:
+          type: string
+          description: Optional base64-encoded image (data URL) attached to the latest user message
     ChatResponse:
       type: object
       required:

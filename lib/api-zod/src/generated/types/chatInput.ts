@@ -9,4 +9,6 @@ import type { ChatMessage } from './chatMessage';
 
 export interface ChatInput {
   messages: ChatMessage[];
+  /** Optional base64-encoded image (data URL) attached to the latest user message */
+  image?: string;
 }
