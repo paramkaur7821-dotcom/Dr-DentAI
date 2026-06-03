@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useSendMessage } from "@workspace/api-client-react";
 import { ChatMessageBubble } from "@/components/ui/chat/message";
 import { TypingIndicator } from "@/components/ui/chat/typing";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, ArrowUp, ImagePlus, X } from "lucide-react";
+import { AlertCircle, ArrowUp, ImagePlus, X, Video, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { type Chat, type ChatMessage } from "@/hooks/use-chats";
@@ -11,7 +11,7 @@ import { type Chat, type ChatMessage } from "@/hooks/use-chats";
 const INITIAL_ASSISTANT_MESSAGE: ChatMessage = {
   role: "assistant",
   content:
-    "Hello! I'm Dr. DentAI 🦷 Tell me your dental problem and I'll help you! You can also **upload a photo** of your teeth and I'll analyze it. You can speak in Hindi or English.",
+    "Hello! I'm Dr. DentAI 🦷 Tell me your dental problem and I'll help you! You can also **upload a photo or video** of your teeth and I'll analyze it. You can speak in Hindi or English.",
 };
 
 const SUGGESTIONS = [
@@ -40,9 +40,12 @@ export default function ChatPage({
 }: ChatPageProps) {
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingVideo, setPendingVideo] = useState<string | null>(null); // object URL
+  const [isCapturing, setIsCapturing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const sendMessage = useSendMessage();
 
@@ -53,48 +56,95 @@ export default function ChatPage({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sendMessage.isPending]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Please use an image under 5MB.", variant: "destructive" });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setPendingImage(ev.target?.result as string);
+  // Revoke video object URL when cleared
+  useEffect(() => {
+    return () => {
+      if (pendingVideo) URL.revokeObjectURL(pendingVideo);
     };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+  }, [pendingVideo]);
+
+  const clearPending = () => {
+    if (pendingVideo) URL.revokeObjectURL(pendingVideo);
+    setPendingVideo(null);
+    setPendingImage(null);
   };
 
-  const handleSubmit = (text?: string) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    if (file.type.startsWith("image/")) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Please use an image under 5MB.", variant: "destructive" });
+        return;
+      }
+      clearPending();
+      const reader = new FileReader();
+      reader.onload = (ev) => setPendingImage(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    } else if (file.type.startsWith("video/")) {
+      if (file.size > 50 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Please use a video under 50MB.", variant: "destructive" });
+        return;
+      }
+      clearPending();
+      const url = URL.createObjectURL(file);
+      setPendingVideo(url);
+    } else {
+      toast({ title: "Invalid file", description: "Please select an image or video file.", variant: "destructive" });
+    }
+  };
+
+  // Capture current video frame as base64 image
+  const captureVideoFrame = useCallback((): string | null => {
+    const video = videoRef.current;
+    if (!video) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  }, []);
+
+  const handleSubmit = async (text?: string) => {
     const content = (text ?? input).trim();
-    if ((!content && !pendingImage) || sendMessage.isPending || !activeChatId) return;
+    const hasMedia = !!pendingImage || !!pendingVideo;
+    if ((!content && !hasMedia) || sendMessage.isPending || !activeChatId) return;
+
+    let imageToSend: string | null = pendingImage;
+
+    // If video, capture current frame
+    if (pendingVideo) {
+      setIsCapturing(true);
+      const frame = captureVideoFrame();
+      setIsCapturing(false);
+      if (!frame) {
+        toast({ title: "Frame capture failed", description: "Please try pausing the video first, then send.", variant: "destructive" });
+        return;
+      }
+      imageToSend = frame;
+    }
 
     const userMsg: ChatMessage = {
       role: "user",
-      content: content || "Please analyze this dental image.",
-      ...(pendingImage ? { image: pendingImage } : {}),
+      content: content || (pendingVideo ? "Please analyze this dental video frame." : "Please analyze this dental image."),
+      ...(imageToSend ? { image: imageToSend } : {}),
     };
     const updatedMessages = [...messages, userMsg];
 
     const isFirst = messages.length === 0;
     const newTitle = isFirst
-      ? (content || "Photo analysis").slice(0, 40) + ((content || "Photo analysis").length > 40 ? "…" : "")
+      ? (content || (pendingVideo ? "Video analysis" : "Photo analysis")).slice(0, 40)
       : activeChat?.title ?? "New question";
 
     onUpdateChat(activeChatId, { messages: updatedMessages, title: newTitle });
 
-    const imageToSend = pendingImage;
     if (text === undefined) setInput("");
-    setPendingImage(null);
+    clearPending();
 
-    // Strip image data from history before sending — only top-level image field carries the current photo
     const messagesForApi = updatedMessages.map(({ image: _img, ...rest }) => rest);
     sendMessage.mutate(
       { data: { messages: messagesForApi, ...(imageToSend ? { image: imageToSend } : {}) } },
@@ -121,44 +171,53 @@ export default function ChatPage({
     }
   };
 
-  const canSend = (input.trim().length > 0 || !!pendingImage) && !sendMessage.isPending && !!activeChatId;
+  const canSend = ((input.trim().length > 0 || !!pendingImage || !!pendingVideo) && !sendMessage.isPending && !!activeChatId);
 
-  // Shared input bar JSX (not a component — avoids remount on re-render)
+  // Shared input bar (not a sub-component to avoid remount issues)
   const inputBar = (
     <div className="w-full max-w-3xl mx-auto">
       {/* Image preview */}
       {pendingImage && (
         <div className="mb-2 relative inline-block">
-          <img
-            src={pendingImage}
-            alt="Pending upload"
-            className="h-24 w-24 rounded-xl object-cover border-2 border-primary/40 shadow"
-          />
-          <button
-            onClick={() => setPendingImage(null)}
-            className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow"
-          >
+          <img src={pendingImage} alt="Pending upload" className="h-24 w-24 rounded-xl object-cover border-2 border-primary/40 shadow" />
+          <button onClick={clearPending} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow">
             <X className="w-3 h-3" />
           </button>
+          <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-md flex items-center gap-1">
+            <Camera className="w-2.5 h-2.5" /> Photo
+          </span>
+        </div>
+      )}
+
+      {/* Video preview */}
+      {pendingVideo && (
+        <div className="mb-3 relative rounded-xl overflow-hidden border-2 border-primary/40 shadow bg-black max-w-sm">
+          <video
+            ref={videoRef}
+            src={pendingVideo}
+            controls
+            playsInline
+            className="w-full max-h-48 object-contain"
+          />
+          <button onClick={clearPending} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow z-10">
+            <X className="w-3.5 h-3.5" />
+          </button>
+          <div className="bg-primary/10 px-3 py-1.5 text-xs text-primary flex items-center gap-1.5 font-medium">
+            <Video className="w-3.5 h-3.5" />
+            Seek to the part showing the dental issue, then press Send
+          </div>
         </div>
       )}
 
       <div className="relative flex items-end bg-card border border-input focus-within:ring-2 focus-within:ring-ring rounded-2xl shadow-md px-3 py-2 gap-2 transition-all">
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageSelect}
-        />
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
 
-        {/* Image upload button */}
+        {/* Upload button */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={sendMessage.isPending}
-          title="Attach a dental photo"
+          title="Attach a dental photo or video"
           className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors self-end mb-0.5"
         >
           <ImagePlus className="w-5 h-5" />
@@ -169,24 +228,33 @@ export default function ChatPage({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={pendingImage ? "Add a message or send photo directly..." : "Describe your dental problem or upload a photo..."}
+          placeholder={
+            pendingVideo
+              ? "Seek the video to the right frame, then send..."
+              : pendingImage
+              ? "Add a message or send photo directly..."
+              : "Describe your dental problem or upload a photo/video..."
+          }
           className="min-h-[48px] max-h-[160px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 px-2 py-2.5 text-base bg-transparent overflow-y-auto"
           rows={1}
         />
 
-        {/* Send button */}
         <button
           type="button"
           onClick={() => handleSubmit()}
-          disabled={!canSend}
+          disabled={!canSend || isCapturing}
           className={cn(
             "shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all self-end mb-0.5",
-            canSend
+            canSend && !isCapturing
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "bg-muted text-muted-foreground cursor-not-allowed"
           )}
         >
-          <ArrowUp className="w-4 h-4" />
+          {isCapturing ? (
+            <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <ArrowUp className="w-4 h-4" />
+          )}
         </button>
       </div>
 
@@ -206,7 +274,7 @@ export default function ChatPage({
           What's your dental concern? 🦷
         </h1>
         <p className="text-muted-foreground text-sm md:text-base mb-8 max-w-md">
-          I'm Dr. DentAI — your AI dental expert. Describe your problem or upload a dental photo and I'll help!
+          I'm Dr. DentAI — your AI dental expert. Describe your problem, or upload a dental photo or video for analysis!
         </p>
         <button
           onClick={onNewChat}
@@ -229,7 +297,7 @@ export default function ChatPage({
     );
   }
 
-  // Empty chat (just started) — centered input
+  // Empty chat — centered input
   if (!hasMessages) {
     return (
       <div className="flex flex-col h-full">
@@ -239,7 +307,7 @@ export default function ChatPage({
             What's your dental concern? 🦷
           </h1>
           <p className="text-muted-foreground text-sm mb-8 text-center max-w-md">
-            Type your problem, or tap the 📷 icon to upload a dental photo for AI analysis!
+            Type your problem, or tap 📷 to upload a photo or video for AI analysis!
           </p>
           <div className="w-full max-w-2xl mx-auto">{inputBar}</div>
           <div className="mt-4 flex flex-wrap justify-center gap-2 max-w-xl">
@@ -267,17 +335,14 @@ export default function ChatPage({
           <h2 className="font-semibold text-sm text-foreground leading-none">Dr. DentAI</h2>
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-            Online — supports text & dental photo analysis
+            Online — supports text, photo &amp; video analysis
           </p>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-5">
-          <ChatMessageBubble
-            role={INITIAL_ASSISTANT_MESSAGE.role}
-            content={INITIAL_ASSISTANT_MESSAGE.content}
-          />
+          <ChatMessageBubble role={INITIAL_ASSISTANT_MESSAGE.role} content={INITIAL_ASSISTANT_MESSAGE.content} />
           {messages.map((msg, index) => (
             <ChatMessageBubble key={index} role={msg.role} content={msg.content} image={msg.image} />
           ))}
