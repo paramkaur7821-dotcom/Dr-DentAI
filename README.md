@@ -1,4 +1,5 @@
 # 🦷 Dr-DentAI
+<img width="1600" height="900" alt="Screenshot (107)" src="https://github.com/user-attachments/assets/79655788-4a35-482b-8d28-943871ee6109" />
 
 > AI-powered dental health assistant that brings smart diagnosis and guidance to your fingertips.
 
