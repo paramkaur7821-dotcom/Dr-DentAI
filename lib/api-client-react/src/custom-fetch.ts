@@ -15,7 +15,19 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 // Module-level configuration
 // ---------------------------------------------------------------------------
 
-let _baseUrl: string | null = null;
+/**
+ * Reads `VITE_API_BASE_URL` from `import.meta.env` (inlined by Vite at build
+ * time).  Falls back to an empty string so that, in local development,
+ * requests stay same-origin and are handled by the dev server.
+ */
+function readBaseUrlFromEnv(): string {
+  const env = import.meta.env;
+  const value = env?.["VITE_API_BASE_URL"];
+
+  return typeof value === "string" ? value.replace(/\/+$/, "") : "";
+}
+
+let _baseUrl: string | null = readBaseUrlFromEnv();
 let _authTokenGetter: AuthTokenGetter | null = null;
 
 /**
@@ -23,6 +35,7 @@ let _authTokenGetter: AuthTokenGetter | null = null;
  * (i.e. paths that start with `/`).
  *
  * Useful for Expo bundles that need to call a remote API server.
+ * Overrides the `VITE_API_BASE_URL` default picked up at module load.
  * Pass `null` to clear the base URL.
  */
 export function setBaseUrl(url: string | null): void {
