@@ -115,7 +115,7 @@ router.post("/chat", async (req, res) => {
       ];
 
       const completion = await groq.chat.completions.create({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        model: "openai/gpt-oss-120b",
         messages: groqMessages,
         max_tokens: 1024,
         temperature: 0.7,
@@ -131,7 +131,7 @@ router.post("/chat", async (req, res) => {
       ];
 
       const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         messages: groqMessages,
         max_tokens: 1024,
         temperature: 0.7,
@@ -140,8 +140,16 @@ router.post("/chat", async (req, res) => {
       const reply = completion.choices[0]?.message?.content ?? "Sorry, kuch problem ho gayi. Please dobara try karein.";
       res.json({ message: reply });
     }
-  } catch (err) {
-    req.log.error({ err }, "Groq API error");
+  } catch (err: any) {
+    req.log.error(
+      {
+        err,
+        message: err?.message,
+        status: err?.status,
+        error: err?.error,
+      },
+      "Groq API error"
+    );
     res.status(500).json({ error: "AI service unavailable. Please try again." });
   }
 });
