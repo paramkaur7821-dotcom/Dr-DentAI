@@ -1,0 +1,7 @@
+{
+  "framework": "vite",
+  "installCommand": "pnpm install --filter @workspace/dent-ai...",
+  "buildCommand": "pnpm --filter @workspace/dent-ai build",
+  "outputDirectory": "artifacts/dent-ai/dist/public",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
